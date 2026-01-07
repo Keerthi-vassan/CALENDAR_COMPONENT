@@ -1,34 +1,60 @@
 {
   "compilerOptions": {
+    /* ===== Base ===== */
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    /* ===== Target & Environment ===== */
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    /* ===== Type Safety ===== */
     "strict": true,
+    "skipLibCheck": true,
     "noEmit": true,
-    "esModuleInterop": true,
+    "isolatedModules": true,
+    /* ===== Module Resolution ===== */
     "module": "esnext",
     "moduleResolution": "bundler",
+    "esModuleInterop": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
+    /* ===== JSX ===== */
     "jsx": "react-jsx",
+    /* ===== Performance ===== */
     "incremental": true,
+    /* ===== Next.js ===== */
     "plugins": [
       {
         "name": "next"
       }
     ],
+    /* ===== Path Aliases ===== */
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": [
+        "src/*"
+      ],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@lib/*": [
+        "src/app/lib/*"
+      ]
+    },
+    "allowJs": true
   },
+  /* ===== Files ===== */
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "globals.d.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }
