@@ -10,7 +10,7 @@ export interface CalendarEvent{
     end : Date;
     orgainizer ?: string;
     description ?: string;
-    color ?: "default" | "blue" | "red" | "green" | "yellow" | "purple";
+    color : string;
 }
 
 interface CalendarContextType{
