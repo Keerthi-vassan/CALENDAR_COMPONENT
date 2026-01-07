@@ -2,113 +2,140 @@
 
 import { useState } from "react";
 import { useCalendar } from "@/context/calendar-context";
-import { 
-  eachDayOfInterval, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  isSameMonth, 
-  isSameDay, 
-  format,
-  isWithinInterval,
-  startOfDay,
-  endOfDay
-} from "date-fns";
+import {eachDayOfInterval,startOfMonth, endOfMonth,startOfWeek,endOfWeek,isSameMonth,isSameDay,format,isWithinInterval,startOfDay,endOfDay} from "date-fns";
 import { cn } from "@lib/utils";
-import AddEventModal from "./add-event-modal"; // Ensure this matches your filename
+import AddEventModal from "./add-event-modal";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function CalendarMonth() {
-  const { currentDate, events, addEvent } = useCalendar();
-  
-  // 1. Local state for the modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+   const { currentDate, events, addEvent } = useCalendar();
 
-  const days = eachDayOfInterval({
-    start: startOfWeek(startOfMonth(currentDate)),
-    end: endOfWeek(endOfMonth(currentDate))
-  });
+   const [isModalOpen, setIsModalOpen] = useState(false);
+   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // 2. Click Handler
-  const handleDayClick = (day: Date) => {
-    setSelectedDate(day);
-    setIsModalOpen(true);
-  };
+   const days = eachDayOfInterval({
+      start: startOfWeek(startOfMonth(currentDate)),
+      end: endOfWeek(endOfMonth(currentDate))
+   });
 
-  // 3. Save Handler (Connects to Context)
-  const handleSaveEvent = ({ title, color, start, end }: { title: string; color: any; start: Date; end: Date }) => {
-    addEvent({
-      id: crypto.randomUUID(),
-      title,
-      start,
-      end,
-      color,
-    });
-  };
+   const handleDayClick = (day: Date) => {
+      setSelectedDate(day);
+      setIsModalOpen(true);
+   };
 
-  return (
-    <>
-      <div className="grid grid-cols-7 gap-1 p-4">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="text-center font-bold text-sm p-2">
-            {day}
-          </div>
-        ))}
+   const handleSaveEvent = ({ title, color, start, end }: { title: string; color: any; start: Date; end: Date }) => {
+      addEvent({
+         id: crypto.randomUUID(),
+         title,
+         start,
+         end,
+         color,
+      });
+   };
 
-        {days.map((day) => {
-          const dayEvents = events.filter((event) => 
-            isWithinInterval(day, {
-              start: startOfDay(event.start),
-              end: endOfDay(event.end)
-            })
-          );
+   const variants = {
+      enter: { opacity: 0, x: 20 },
+      center: { opacity: 1, x: 0 },
+      exit: { opacity: 0, x: -20 }
+   };
 
-          return (
-            <div
-              key={day.toString()}
-              onClick={() => handleDayClick(day)} // <--- Trigger Modal
-              className={cn(
-                "h-24 border rounded-md p-1 overflow-y-auto flex flex-col gap-1 hover:bg-gray-50 cursor-pointer transition-colors", 
-                !isSameMonth(day, currentDate) && "bg-gray-50 text-gray-400"
-              )}
-            >
-              <div className={cn(
-                "font-semibold text-xs w-6 h-6 flex items-center justify-center rounded-full mb-1",
-                isSameDay(day, new Date()) && "bg-black text-white"
-              )}>
-                {format(day, "d")}
-              </div>
-              
-              {dayEvents.map((event) => (
-                <div 
-                  key={event.id} 
-                  className={cn(
-                    "text-xs p-1 rounded truncate",
-                    event.color === "red" ? "bg-red-100 text-red-700" :
-                    event.color === "blue" ? "bg-blue-100 text-blue-700" :
-                    event.color === "green" ? "bg-green-100 text-green-700" :
-                    event.color === "purple" ? "bg-purple-100 text-purple-700" :
-                    "bg-gray-100 text-gray-700"
-                  )}
-                  title={event.title}
-                  onClick={(e) => e.stopPropagation()} // Prevent clicking event from opening "Add Event" modal
-                >
-                  {event.title}
-                </div>
-              ))}
-            </div>
-          );
-        })}
-      </div>
+   return (
+      <>
+         <div className="p-2 overflow-hidden w-full">
+            <AnimatePresence mode="wait">
+               <motion.div
+                  key={currentDate.toString()}
+                  variants={variants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.2 }}
+                  // RESTORED: No background color, just borders
+                  className="grid grid-cols-7 border-t border-l w-full"
+               >
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                     // RESTORED: Removed bg-white
+                     <div key={day} className="text-center font-bold text-sm p-2 border-b border-r">
+                        {day}
+                     </div>
+                  ))}
 
-      {/* 4. Render the Modal */}
-      <AddEventModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveEvent}
-        date={selectedDate}
-      />
-    </>
-  );
+                  {days.map((day) => {
+                     const dayEvents = events.filter((event) =>
+                        isWithinInterval(day, {
+                           start: startOfDay(event.start),
+                           end: endOfDay(event.end)
+                        })
+                     );
+
+                     // LOGIC FIX 1: Stable Sort to prevent jumping
+                     dayEvents.sort((a, b) => {
+                        const timeDiff = a.start.getTime() - b.start.getTime();
+                        if (timeDiff !== 0) return timeDiff;
+                        return a.title.localeCompare(b.title);
+                     });
+
+                     return (
+                        <div key={day.toString()} onClick={() => handleDayClick(day)}
+
+                           className={cn(
+                              "h-28 border-b border-r flex flex-col gap-1 hover:bg-gray-50/30 cursor-pointer transition-colors",
+                              !isSameMonth(day, currentDate) && "bg-gray-50 text-gray-400"
+                           )}
+                        >
+
+                           <div className={cn("font-semibold text-xs w-6 h-6 flex items-center justify-center rounded-full m-1", isSameDay(day, new Date()) && "bg-black text-white")}>
+                              {format(day, "d")}
+                           </div>
+
+                           <div className="flex flex-col gap-1">
+                              {dayEvents.slice(0, 2).map((event) => {
+                                 const isStart = isSameDay(day, startOfDay(event.start));
+                                 const isEnd = isSameDay(day, endOfDay(event.end));
+                                 const isSunday = day.getDay() === 0;
+                                 const showTitle = isStart || isSunday;
+
+                                 return (
+                                    <div key={event.id}
+                                       // LOGIC FIX 3: Added 'h-5' (fixed height) to force alignment
+                                       className={cn(
+                                          "text-xs px-2 py-0.5 truncate text-white h-5",
+                                          isStart && isEnd ? "rounded-md mx-2" :
+                                             isStart ? "rounded-l-md ml-2 mr-0" :
+                                                isEnd ? "rounded-r-md mr-2 ml-0" :
+                                                   "rounded-none mx-0"
+                                       )}
+                                       style={{ backgroundColor: event.color }}
+                                       title={event.title}
+                                       onClick={(e) => e.stopPropagation()}
+                                    >
+                                       {/* LOGIC FIX 4: Invisible text instead of no text */}
+                                       <span className={cn("leading-tight", showTitle ? "" : "invisible")}>
+                                          {event.title}
+                                       </span>
+                                    </div>
+                                 );
+                              })}
+                           </div>
+
+                           {dayEvents.length > 2 && (
+                              <div className="text-xs flex justify-end pr-2 text-gray-500 font-medium">
+                                 +{dayEvents.length - 2} more
+                              </div>
+                           )}
+                        </div>
+                     );
+                  })}
+               </motion.div>
+            </AnimatePresence>
+         </div>
+
+         <AddEventModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSave={handleSaveEvent}
+            date={selectedDate}
+         />
+      </>
+   );
 }
